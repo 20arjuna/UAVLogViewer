@@ -225,6 +225,28 @@ export default {
             a.click()
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
+        },
+        sendToBackend (messages) {
+            console.log('📤 Sending parsed data to backend...')
+
+            fetch('http://localhost:8000/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: this.state.file,
+                    messages: messages
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Backend saved!', data)
+                    console.log('📁 File ID:', data.file_id)
+                })
+                .catch(error => {
+                    console.error('❌ Error sending to backend:', error)
+                })
         }
     },
     mounted () {
@@ -250,6 +272,8 @@ export default {
                 this.$eventHub.$emit('messages')
             } else if (event.data.messagesDoneLoading) {
                 this.$eventHub.$emit('messagesDoneLoading')
+                // Send to backend after all messages are loaded
+                this.sendToBackend(this.state.messages)
             } else if (event.data.messageType) {
                 this.state.messages[event.data.messageType] = event.data.messageList
                 this.$eventHub.$emit('messages')
