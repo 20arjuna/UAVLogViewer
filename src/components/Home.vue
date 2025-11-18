@@ -16,6 +16,7 @@
         <AttitudeViewer @close="state.showAttitude = false" v-if="state.showAttitude"></AttitudeViewer>
         <MagFitTool     @close="state.showMagfit = false" v-if="state.showMagfit"></MagFitTool>
         <EkfHelperTool  @close="state.showEkfHelper = false" v-if="state.showEkfHelper"></EkfHelperTool>
+        <ChatBot />
         <div class="container-fluid" style="height: 100%; overflow: hidden;">
 
             <sidebar/>
@@ -60,6 +61,7 @@ import { MavlinkDataExtractor } from '../tools/mavlinkDataExtractor'
 import { DjiDataExtractor } from '../tools/djiDataExtractor'
 import MagFitTool from '@/components/widgets/MagFitTool.vue'
 import EkfHelperTool from '@/components/widgets/EkfHelperTool.vue'
+import ChatBot from '@/components/ChatBot.vue'
 import Vue from 'vue'
 
 export default {
@@ -71,6 +73,11 @@ export default {
         this.state.timeAttitudeQ = []
         this.state.currentTrajectory = []
         isOnline().then(a => { this.state.isOnline = a })
+
+        // Reset backend database on page load
+        fetch('http://localhost:8000/reset', { method: 'POST' })
+            .then(() => console.log('🗑️ Backend database reset'))
+            .catch(err => console.warn('⚠️ Could not reset backend:', err))
     },
     beforeDestroy () {
         this.$eventHub.$off('messages')
@@ -239,7 +246,8 @@ export default {
         DeviceIDViewer,
         AttitudeViewer,
         MagFitTool,
-        EkfHelperTool
+        EkfHelperTool,
+        ChatBot
     },
     computed: {
         mapOk () {
