@@ -45,7 +45,6 @@
 <script>
 import isOnline from 'is-online'
 import Plotly from '@/components/Plotly.vue'
-import CesiumViewer from '@/components/CesiumViewer.vue'
 import Sidebar from '@/components/Sidebar.vue'
 import TxInputs from '@/components/widgets/TxInputs.vue'
 import ParamViewer from '@/components/widgets/ParamViewer.vue'
@@ -54,7 +53,6 @@ import DeviceIDViewer from '@/components/widgets/DeviceIDViewer.vue'
 import AttitudeViewer from '@/components/widgets/AttitudeWidget.vue'
 import { store } from '@/components/Globals.js'
 import { AtomSpinner } from 'epic-spinners'
-import { Color } from 'cesium'
 import colormap from 'colormap'
 import { DataflashDataExtractor } from '../tools/dataflashDataExtractor'
 import { MavlinkDataExtractor } from '../tools/mavlinkDataExtractor'
@@ -225,20 +223,19 @@ export default {
             // colormap used on legend.
             this.state.cssColors = colormap(colorMapOptions)
 
-            // colormap used on Cesium
+            // colormap used on Cesium (stored as plain objects)
             colorMapOptions.format = 'float'
             this.state.colors = []
-            // this.translucentColors = []
             for (const rgba of colormap(colorMapOptions)) {
-                this.state.colors.push(new Color(rgba[0], rgba[1], rgba[2]))
-                // this.translucentColors.push(new Cesium.Color(rgba[0], rgba[1], rgba[2], 0.1))
+                // Store as plain objects - CesiumViewer will convert to Cesium.Color when needed
+                this.state.colors.push({ r: rgba[0], g: rgba[1], b: rgba[2], a: 1 })
             }
         }
     },
     components: {
         Sidebar,
         Plotly,
-        CesiumViewer,
+        CesiumViewer: () => import('@/components/CesiumViewer.vue'),
         AtomSpinner,
         TxInputs,
         ParamViewer,

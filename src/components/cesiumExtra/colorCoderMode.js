@@ -1,3 +1,4 @@
+import { Color } from 'cesium'
 
 export default class ColorCoderMode {
     requiredMessages = []
@@ -21,7 +22,9 @@ export default class ColorCoderMode {
         if (this.setOfModes === undefined) {
             this.setOfModes = this.calculateSetOfModes()
         }
-        return this.state.colors[this.setOfModes.indexOf(this.getMode(time))]
+        const colorObj = this.state.colors[this.setOfModes.indexOf(this.getMode(time))]
+        // Convert plain object to Cesium.Color
+        return new Color(colorObj.r, colorObj.g, colorObj.b, colorObj.a)
     }
 
     getMode (time) {

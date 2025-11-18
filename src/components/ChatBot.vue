@@ -94,10 +94,19 @@ export default {
             isOpen: false,
             currentMessage: '',
             messages: [],
-            isLoading: false
+            isLoading: false,
+            sessionId: null
         }
     },
     mounted () {
+        // Generate or restore session ID
+        this.sessionId = sessionStorage.getItem('chatSessionId')
+        if (!this.sessionId) {
+            this.sessionId = this.generateSessionId()
+            sessionStorage.setItem('chatSessionId', this.sessionId)
+        }
+        console.log('🔑 Chat session ID:', this.sessionId)
+
         // Keyboard shortcut: Ctrl/Cmd + K
         document.addEventListener('keydown', this.handleKeydown)
     },
@@ -105,6 +114,14 @@ export default {
         document.removeEventListener('keydown', this.handleKeydown)
     },
     methods: {
+        generateSessionId () {
+            // Simple UUID v4 generator
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0
+                const v = c === 'x' ? r : (r & 0x3 | 0x8)
+                return v.toString(16)
+            })
+        },
         handleKeydown (e) {
             // Ctrl+K or Cmd+K to toggle
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -122,9 +139,8 @@ export default {
                 // Welcome message
                 this.messages.push({
                     role: 'assistant',
-                    content: "Hi! I'm your flight log analyst.",
-                    // eslint-disable-next-line
-                    content: "Upload a log file and ask me anything about your flight data!"
+                    content: "Hi! I'm your flight log analyst. " +
+                    'Upload a log file and ask me anything about your flight data!'
                 })
             }
             this.$nextTick(() => {
@@ -152,24 +168,62 @@ export default {
                 container.scrollTo(0, container.scrollHeight)
             })
 
-            // Call API
+            // Call API with streaming (include session_id)
             this.isLoading = true
+            let assistantMsgIndex = null
             try {
-                const response = await fetch('http://localhost:8000/ask?question=' + encodeURIComponent(userMessage), {
-                    method: 'POST'
-                })
-                const data = await response.json()
+                const response = await fetch(
+                    'http://localhost:8000/ask?question=' + encodeURIComponent(userMessage) +
+                    '&session_id=' + encodeURIComponent(this.sessionId),
+                    { method: 'POST' }
+                )
 
-                // Add assistant response
-                this.messages.push({
-                    role: 'assistant',
-                    content: data.answer
-                })
+                const reader = response.body.getReader()
+                const decoder = new TextDecoder()
+                let buffer = ''
+
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) break
+
+                    buffer += decoder.decode(value, { stream: true })
+                    const lines = buffer.split('\n\n')
+                    buffer = lines.pop() // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const event = JSON.parse(line.slice(6))
+
+                            if (event.type === 'token') {
+                                // Create message on first token
+                                if (assistantMsgIndex === null) {
+                                    assistantMsgIndex = this.messages.length
+                                    this.messages.push({
+                                        role: 'assistant',
+                                        content: ''
+                                    })
+                                    // Hide loading indicator once first token arrives
+                                    this.isLoading = false
+                                }
+                                // Append token to message
+                                this.messages[assistantMsgIndex].content += event.content
+
+                                // Auto-scroll as tokens arrive
+                                this.$nextTick(() => {
+                                    const container = this.$refs.messagesContainer
+                                    container.scrollTo(0, container.scrollHeight)
+                                })
+                            } else if (event.type === 'error') {
+                                this.messages[assistantMsgIndex].content = '❌ Error: ' + event.message
+                            }
+                            // event.type === 'done' means stream finished
+                        }
+                    }
+                }
             } catch (error) {
-                this.messages.push({
-                    role: 'assistant',
-                    content: '❌ Error: Could not connect to the backend. Make sure the server is running on port 8000.'
-                })
+                this.messages[assistantMsgIndex].content = '❌ Error: Could not connect to the backend. ' +
+                    'Make sure the server is running on port 8000.'
+                console.error('Streaming error:', error)
             } finally {
                 this.isLoading = false
                 this.$nextTick(() => {
@@ -298,7 +352,7 @@ export default {
 }
 
 .chat-message.user .message-bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #5b6fb8;
   color: white;
   border-bottom-right-radius: 4px;
 }
