@@ -137,6 +137,42 @@ export default {
         this.asyncSetup()
     },
     methods: {
+        executeCommand (command) {
+            /**
+             * Execute a UI command from the AI agent
+             * Commands: control_playback, seek_to_timestamp
+             */
+            console.log('🎮 Executing command:', command)
+            if (!this.viewer) {
+                console.warn('⚠️ Viewer not initialized yet, cannot execute command')
+                return
+            }
+            const { action, params } = command
+            if (action === 'control_playback') {
+                const playbackAction = params.action
+                if (playbackAction === 'play') {
+                    this.viewer.clockViewModel.shouldAnimate = true
+                } else if (playbackAction === 'pause') {
+                    this.viewer.clockViewModel.shouldAnimate = false
+                } else if (playbackAction.startsWith('speed_')) {
+                    // Extract speed multiplier (e.g., "speed_2x" -> 2)
+                    const speedStr = playbackAction.replace('speed_', '').replace('x', '')
+                    const speed = parseFloat(speedStr)
+                    this.viewer.clock.multiplier = speed
+                    console.log(`⏩ Playback speed set to ${speed}x`)
+                }
+            } else if (action === 'seek_to_timestamp') {
+                const timestampMs = params.timestamp
+                // Convert timestamp to Cesium time
+                const cesiumTime = this.msToCesiumTime(timestampMs)
+                this.viewer.clock.currentTime = cesiumTime
+                // Emit event so other components know time changed
+                this.$eventHub.$emit('cesium-time-changed', timestampMs)
+                console.log(`⏱️ Seeked to timestamp: ${timestampMs}ms`)
+            } else {
+                console.warn('⚠️ Unknown command action:', action)
+            }
+        },
         async asyncSetup () {
             if (this.viewer == null) {
                 if (this.state.isOnline) {

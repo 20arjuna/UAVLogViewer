@@ -16,7 +16,7 @@
         <AttitudeViewer @close="state.showAttitude = false" v-if="state.showAttitude"></AttitudeViewer>
         <MagFitTool     @close="state.showMagfit = false" v-if="state.showMagfit"></MagFitTool>
         <EkfHelperTool  @close="state.showEkfHelper = false" v-if="state.showEkfHelper"></EkfHelperTool>
-        <ChatBot />
+        <ChatBot @execute-command="handleCommand" />
         <div class="container-fluid" style="height: 100%; overflow: hidden;">
 
             <sidebar/>
@@ -87,6 +87,12 @@ export default {
         }
     },
     methods: {
+        handleCommand (command) {
+            // Route command to CesiumViewer
+            if (this.$refs.cesiumViewer) {
+                this.$refs.cesiumViewer.executeCommand(command)
+            }
+        },
         extractFlightData () {
             if (this.dataExtractor === null) {
                 if (this.state.logType === 'tlog') {

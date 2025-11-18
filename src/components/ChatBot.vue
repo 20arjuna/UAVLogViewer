@@ -215,6 +215,9 @@ export default {
                                 })
                             } else if (event.type === 'error') {
                                 this.messages[assistantMsgIndex].content = '❌ Error: ' + event.message
+                            } else if (event.type === 'command') {
+                                // Forward UI command to parent component
+                                this.$emit('execute-command', event)
                             }
                             // event.type === 'done' means stream finished
                         }
