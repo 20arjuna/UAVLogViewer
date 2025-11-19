@@ -109,9 +109,12 @@ export default {
 
         // Keyboard shortcut: Ctrl/Cmd + K
         document.addEventListener('keydown', this.handleKeydown)
+        // Listen for agent commands to toggle chatbot
+        this.$eventHub.$on('toggle-chatbot', this.handleToggle)
     },
     beforeDestroy () {
         document.removeEventListener('keydown', this.handleKeydown)
+        this.$eventHub.$off('toggle-chatbot', this.handleToggle)
     },
     methods: {
         generateSessionId () {
@@ -149,6 +152,16 @@ export default {
                     container?.scrollTo(0, container.scrollHeight)
                 }
             })
+        },
+        handleToggle (visible) {
+            // Handle toggle from agent commands
+            this.isOpen = visible
+            if (visible) {
+                this.$nextTick(() => {
+                    const container = this.$refs.messagesContainer
+                    container?.scrollTo(0, container.scrollHeight)
+                })
+            }
         },
         async sendMessage () {
             if (!this.currentMessage.trim() || this.isLoading) return

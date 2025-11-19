@@ -88,9 +88,55 @@ export default {
     },
     methods: {
         handleCommand (command) {
-            // Route command to CesiumViewer
-            if (this.$refs.cesiumViewer) {
-                this.$refs.cesiumViewer.executeCommand(command)
+            console.log('📊 Received command:', command)
+            if (command.action === 'create_plot') {
+                // Handle plot creation
+                this.createPlotFromAgent(command.params)
+            } else if (command.action === 'toggle_ui') {
+                // Handle UI toggle
+                this.toggleUIFromAgent(command.params)
+            } else {
+                // Route to CesiumViewer for 3D controls
+                if (this.$refs.cesiumViewer) {
+                    this.$refs.cesiumViewer.executeCommand(command)
+                }
+            }
+        },
+        createPlotFromAgent (params) {
+            console.log('📈 Creating plot from agent:', params)
+            const { fields, title } = params
+            if (!fields || fields.length === 0) {
+                console.warn('⚠️ No fields provided for plot')
+                return
+            }
+            // Turn on plot area so it becomes visible
+            this.state.plotOn = true
+            // Clear existing plots first (fresh start for each agent plot)
+            this.$eventHub.$emit('clearPlot')
+            // Convert fields to plotly format: [[fieldname], [fieldname2], ...]
+            // Plotly.vue will auto-assign axis and color
+            const plots = fields.map(field => [field])
+            // Emit to Plotly component
+            this.$eventHub.$emit('addPlots', plots)
+            // Optional: Show notification
+            console.log(`✓ Added ${fields.length} field(s) to plot: ${fields.join(', ')}`)
+            if (title) {
+                console.log(`   Plot title: ${title}`)
+            }
+        },
+        toggleUIFromAgent (params) {
+            console.log('🎛️ Toggling UI from agent:', params)
+            const { component, visible } = params
+            if (component === 'plot') {
+                this.state.plotOn = visible
+                console.log(`📊 Plot: ${visible ? 'ON' : 'OFF'}`)
+            } else if (component === 'chatbot') {
+                // Emit to ChatBot component
+                this.$eventHub.$emit('toggle-chatbot', visible)
+                console.log(`💬 Chatbot: ${visible ? 'OPEN' : 'MINIMIZED'}`)
+            } else if (component === 'map') {
+                this.state.showMap = visible
+                console.log(`🗺️ Map: ${visible ? 'ON' : 'OFF'}`)
             }
         },
         extractFlightData () {
