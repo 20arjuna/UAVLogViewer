@@ -73,7 +73,8 @@ export default {
         isOnline().then(a => { this.state.isOnline = a })
 
         // Reset backend database on page load
-        fetch('http://localhost:8000/reset', { method: 'POST' })
+        const backendUrl = process.env.VUE_APP_BACKEND_URL || 'http://localhost:8000'
+        fetch(`${backendUrl}/reset`, { method: 'POST' })
             .then(() => console.log('🗑️ Backend database reset'))
             .catch(err => console.warn('⚠️ Could not reset backend:', err))
     },

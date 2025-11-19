@@ -229,7 +229,8 @@ export default {
         sendToBackend (messages) {
             console.log('📤 Sending parsed data to backend...')
 
-            fetch('http://localhost:8000/upload', {
+            const backendUrl = process.env.VUE_APP_BACKEND_URL || 'http://localhost:8000'
+            fetch(`${backendUrl}/upload`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
